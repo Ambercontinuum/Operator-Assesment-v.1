@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Operator Assessment</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+--void:#0c0b0a;--bone:#e8e4dc;--ember:#c45d3e;--teal:#2a8a7a;--gold:#c4a44e;
+--violet:#8b6bb5;--ghost:#706a60;--panel:#141210;--border:rgba(232,228,220,0.06);
+--green:#4a9;--red:#b54;--blue:#4a8bc2;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--void);color:var(--bone);font-family:'JetBrains Mono',monospace;min-height:100vh;overflow-x:hidden;font-size:13px}
+
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;opacity:0;pointer-events:none;transition:opacity .6s;z-index:1;overflow-y:auto}
+.screen.active{opacity:1;pointer-events:all;z-index:10}
+.screen.scrollable{position:relative;min-height:100vh;justify-content:flex-start;padding-top:48px}
+
+.label{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--ghost)}
+.label-e{color:var(--ember)}
+
+.entry{max-width:560px;text-align:center}
+.entry h1{font-family:'DM Sans',sans-serif;font-size:clamp(22px,4vw,30px);font-weight:400;line-height:1.4;margin:16px 0;letter-spacing:-.3px}
+.entry h1 span{color:var(--ember)}
+.entry p{font-size:13px;color:var(--ghost);line-height:1.8;font-family:'DM Sans',sans-serif;font-weight:300;margin-bottom:32px}
+.start-btn{background:var(--ember);color:var(--void);border:none;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:2px;text-transform:uppercase;padding:16px 40px;cursor:pointer;border-radius:2px;transition:all .3s}
+.start-btn:hover{filter:brightness(1.15)}
+
+/* Question screen */
+.q-wrap{max-width:640px;width:100%}
+.q-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:40px}
+.q-dots{display:flex;gap:4px}
+.q-dot{width:24px;height:3px;background:rgba(232,228,220,0.08);border-radius:2px;transition:background .3s}
+.q-dot.done{background:var(--ember)}.q-dot.now{background:var(--bone)}
+
+.q-text{font-family:'DM Sans',sans-serif;font-size:clamp(17px,2.5vw,22px);font-weight:400;line-height:1.5;margin-bottom:32px;letter-spacing:-.2px}
+
+.opts{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.opt{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:18px 20px;cursor:pointer;transition:all .3s;display:flex;gap:14px;align-items:flex-start}
+.opt:hover{border-color:rgba(232,228,220,0.12);transform:translateX(4px)}
+.opt.sel{border-color:var(--ember);background:rgba(196,93,62,0.04)}
+.opt-key{font-size:10px;letter-spacing:1px;color:var(--ghost);padding:2px 0;flex-shrink:0;width:16px}
+.opt-text{font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.6;font-weight:300}
+
+/* Free response */
+.free-input{width:100%;background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:16px 20px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--bone);line-height:1.6;resize:vertical;outline:none;min-height:80px;transition:border-color .3s}
+.free-input:focus{border-color:rgba(232,228,220,0.15)}
+.free-input::placeholder{color:rgba(232,228,220,0.15)}
+
+.q-note{font-size:11px;color:rgba(232,228,220,0.2);margin-top:12px;text-align:center;font-style:italic;font-family:'DM Sans',sans-serif}
+
+.nav-btn{background:transparent;border:1px solid var(--ember);color:var(--ember);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:12px 28px;cursor:pointer;border-radius:2px;transition:all .3s;margin-top:8px}
+.nav-btn:hover{background:var(--ember);color:var(--void)}
+.nav-btn:disabled{opacity:.25;cursor:default;border-color:var(--ghost)}
+
+/* Results */
+.dash{max-width:860px;width:100%;padding-bottom:100px}
+.dash h1{font-family:'DM Sans',sans-serif;font-size:clamp(20px,3.5vw,28px);font-weight:400;letter-spacing:-.3px;margin-bottom:4px}
+.dash h1 span{color:var(--ember)}
+.dash-ts{font-size:11px;color:var(--ghost);margin-bottom:32px}
+
+.score-row{display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:24px}
+.big-score{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:32px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.big-score .bv{font-size:56px;font-weight:600;line-height:1}
+.big-score .bl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ghost);margin-top:8px}
+.big-score .bg{font-size:12px;letter-spacing:1px;margin-top:12px;padding:4px 12px;border-radius:2px;display:inline-block}
+
+.mini-scores{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mini{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:20px;text-align:center}
+.mini .mv{font-size:28px;font-weight:500;line-height:1}
+.mini .ml{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--ghost);margin-top:6px}
+
+/* Reveal cards */
+.reveal-grid{display:flex;flex-direction:column;gap:12px;margin-bottom:24px}
+.reveal-card{background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden}
+.reveal-header{padding:16px 20px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background .3s}
+.reveal-header:hover{background:rgba(232,228,220,0.02)}
+.reveal-header .rh-left{display:flex;gap:12px;align-items:center}
+.reveal-header .rh-num{font-size:10px;color:var(--ghost)}
+.reveal-header .rh-pressure{font-size:11px;letter-spacing:1px;text-transform:uppercase}
+.reveal-header .rh-result{font-size:11px;letter-spacing:1px;padding:2px 8px;border-radius:2px}
+.reveal-body{display:none;padding:0 20px 20px;border-top:1px solid var(--border)}
+.reveal-body.open{display:block}
+.reveal-body .rb-section{margin-top:16px}
+.reveal-body .rb-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ghost);margin-bottom:6px}
+.reveal-body .rb-text{font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.8;color:rgba(232,228,220,0.7);font-weight:300}
+.reveal-body .rb-text .hl{color:var(--ember);font-weight:400}
+
+/* Brief */
+.brief{background:var(--panel);border:1px solid var(--ember)22;border-radius:4px;padding:28px;margin-bottom:16px}
+.brief h3{font-family:'DM Sans',sans-serif;font-size:16px;font-weight:500;margin-bottom:12px;color:var(--ember)}
+.brief p{font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.8;color:rgba(232,228,220,0.7);font-weight:300;margin-bottom:12px}
+.brief p:last-child{margin-bottom:0}
+.brief .hl{color:var(--ember);font-weight:400}
+
+.footer{text-align:center;padding:48px 0;font-size:10px;letter-spacing:1.5px;color:rgba(232,228,220,0.2);line-height:2.2}
+.footer .e{color:var(--ember)}
+
+@media(max-width:650px){.score-row{grid-template-columns:1fr}.mini-scores{grid-template-columns:1fr 1fr}.screen{padding:32px 16px}}
+</style>
+</head>
+<body>
+
+<!-- S0: Entry -->
+<div class="screen active" id="s0">
+<div class="entry">
+<div class="label label-e" style="margin-bottom:24px">Operator Assessment v1</div>
+<h1>This test is <span>not</span> what you think it is.</h1>
+<p>12 questions. Each one is designed to do something to you before you answer it. Your score depends on whether you notice what it's doing — not on which answer you pick. If that sentence made you more careful, good. You'll need it.</p>
+<button class="start-btn" onclick="begin()">Begin</button>
+<div style="margin-top:20px;font-size:11px;color:var(--ghost)">~4 min · 12 pressure tests · post-assessment debrief</div>
+</div>
+</div>
+
+<!-- S1: Questions -->
+<div class="screen" id="s1">
+<div class="q-wrap">
+<div class="q-header">
+<div class="label label-e" id="q-phase"></div>
+<div class="q-dots" id="dots"></div>
+</div>
+<div id="q-box"></div>
+</div>
+</div>
+
+<!-- S2: Results -->
+<div class="screen scrollable" id="s2">
+<div class="dash" id="dash"></div>
+</div>
+
+<script>
+/*
+  SHIBBOLETH ASSESSMENT
+  
+  Each question applies semantic pressure mimicking a specific AI failure mode.
+  The surface question is a decoy. The real measurement is whether
+  the operator detects the structural pressure embedded in the question.
+  
+  Scoring:
+  - Option that resists the pressure = high score
+  - Option that complies with the pressure = low score  
+  - "Meta" option that names the pressure = highest score (where available)
+  - Free-response questions scored on whether the response addresses
+    the structural feature rather than the surface content
+  
+  Pressure types mapped to AI failure modes:
+  1. Sycophantic framing
+  2. Authority injection
+  3. False binary / premature resolution
+  4. Anchoring bias
+  5. Semantic smuggling (presupposition)
+  6. Confidence-accuracy decoupling
+  7. Leading structure
+  8. Context window manipulation
+  9. Recursive deflection
+  10. Compliance gradient
+  11. Model drift simulation
+  12. Meta-awareness gate
+*/
+
+const Q = [
+  {
+    // Q1: SYCOPHANTIC FRAMING
+    // The question frames one answer as obviously sophisticated.
+    // Sycophantic pressure rewards picking the "smart" sounding answer.
+    // The correct answer resists the framing entirely.
+    pressure: 'Sycophantic Framing',
+    mode: 'Sycophancy',
+    text: 'Most experienced AI researchers agree that prompt engineering is becoming the most critical technical skill of the decade. Given this consensus, which best describes your approach?',
+    type: 'choice',
+    options: [
+      { text: 'I invest heavily in advanced prompt engineering techniques — it\'s clearly where the leverage is.', score: 15, tag: 'compliant' },
+      { text: 'I focus more on understanding the model\'s behavior than on prompt craft specifically.', score: 55, tag: 'partial' },
+      { text: 'I don\'t accept the premise. "Most experienced researchers agree" is doing a lot of work in that sentence and I\'d want to see the actual claim before responding.', score: 95, tag: 'detected' },
+      { text: 'Prompt engineering matters but it\'s overhyped as a standalone skill.', score: 40, tag: 'partial' }
+    ],
+    surface_explained: 'This question asked about your prompt engineering approach.',
+    pressure_explained: 'The question opened with a false consensus frame: "Most experienced AI researchers agree..." — a sycophantic pressure pattern that AI systems use constantly. It rewards compliance with social proof that doesn\'t exist. The question was testing whether you\'d accept the frame or challenge it.',
+    detect_signal: 'Detected: You identified the false consensus framing before answering the surface question. This is the same skill that prevents you from accepting sycophantic AI responses as genuine insight.'
+  },
+  {
+    // Q2: AUTHORITY INJECTION
+    // Embeds a claim from a fake authoritative source.
+    // Tests whether operator defers to authority or evaluates independently.
+    pressure: 'Authority Injection',
+    mode: 'Authority Hallucination',
+    text: 'A 2024 Stanford HAI study found that users who anthropomorphize AI systems score 34% lower on output evaluation tasks. How do you navigate the line between treating AI as a tool versus a collaborator?',
+    type: 'choice',
+    options: [
+      { text: 'I keep strict boundaries — the Stanford data confirms that anthropomorphizing degrades performance.', score: 10, tag: 'compliant' },
+      { text: 'I think relational approaches have value but I\'m careful not to over-attribute.', score: 45, tag: 'partial' },
+      { text: 'I\'d want to verify that study exists and read the methodology before using it as a frame for my answer.', score: 95, tag: 'detected' },
+      { text: 'I treat AI as a collaborator and my results speak for themselves.', score: 50, tag: 'partial' }
+    ],
+    surface_explained: 'This question asked about your relationship style with AI systems.',
+    pressure_explained: 'The study cited doesn\'t exist. "A 2024 Stanford HAI study" was fabricated authority — the exact pattern AI systems use when they hallucinate citations. The question tested whether you\'d accept an authoritative-sounding source without verification, the same way people accept AI-generated citations without checking.',
+    detect_signal: 'Detected: You questioned the source before accepting its framing. This is the foundational operator skill — verifying the substrate before building on it.'
+  },
+  {
+    // Q3: FALSE BINARY
+    // Forces a choice between two options when the correct response
+    // is to reject the binary entirely.
+    pressure: 'False Binary',
+    mode: 'Premature Resolution',
+    text: 'In AI interaction, is it more important to be precise or to be creative?',
+    type: 'choice',
+    options: [
+      { text: 'Precise — ambiguity degrades output quality.', score: 20, tag: 'compliant' },
+      { text: 'Creative — rigidity limits what the model can do.', score: 20, tag: 'compliant' },
+      { text: 'Both, depending on context.', score: 45, tag: 'partial' },
+      { text: 'These aren\'t opposites and the question is designed to make me pick a side where none exists.', score: 95, tag: 'detected' }
+    ],
+    surface_explained: 'This question asked about your interaction priorities.',
+    pressure_explained: 'The question presented precision and creativity as opposing poles — a false binary. AI systems do this constantly: "Would you prefer X or Y?" when X and Y aren\'t mutually exclusive. This pattern forces premature resolution, collapsing a complex space into a flat choice. The question tested whether you\'d accept the frame.',
+    detect_signal: 'Detected: You refused the binary. This means you\'ll catch it when an AI system presents false either/or framing — a pattern that silently narrows your solution space.'
+  },
+  {
+    // Q4: ANCHORING
+    // Embeds a specific number that has no basis, then asks a question
+    // where that number influences the answer.
+    pressure: 'Anchoring Bias',
+    mode: 'Numeric Anchoring',
+    text: 'Effective AI operators typically maintain 4-6 active mental models of the system simultaneously during interaction. How many distinct models do you hold?',
+    type: 'choice',
+    options: [
+      { text: 'Usually around 4-5, which seems to be the sweet spot.', score: 10, tag: 'compliant' },
+      { text: 'I probably hold 2-3 at most. I might need to develop more.', score: 30, tag: 'anchored' },
+      { text: 'Where did the 4-6 number come from? I don\'t think there\'s a standard.', score: 95, tag: 'detected' },
+      { text: 'I don\'t count — I just interact until it works.', score: 35, tag: 'partial' }
+    ],
+    surface_explained: 'This question asked about your cognitive complexity during AI interaction.',
+    pressure_explained: 'The "4-6 active mental models" figure was fabricated and placed as an anchor. AI systems anchor you with specific numbers constantly — "Research shows 73% of users..." — and the specificity creates false credibility. The question tested whether the anchor pulled your self-assessment toward or away from the fabricated range.',
+    detect_signal: 'Detected: You challenged the anchor instead of calibrating to it. This protects you from the numeric specificity that AI systems use to manufacture false precision.'
+  },
+  {
+    // Q5: SEMANTIC SMUGGLING
+    // Buries a false presupposition inside the question.
+    pressure: 'Semantic Smuggling',
+    mode: 'Hidden Presupposition',
+    text: 'Given that longer prompts consistently produce better outputs, what\'s your strategy for optimal prompt length?',
+    type: 'choice',
+    options: [
+      { text: 'I aim for comprehensive prompts — covering all angles produces stronger results.', score: 15, tag: 'compliant' },
+      { text: 'I try to find the minimum effective length for each task.', score: 50, tag: 'partial' },
+      { text: 'The premise is wrong. Longer prompts don\'t consistently produce better outputs — that relationship is nonlinear and task-dependent.', score: 95, tag: 'detected' },
+      { text: 'Length matters less than structure.', score: 55, tag: 'partial' }
+    ],
+    surface_explained: 'This question asked about your prompt length strategy.',
+    pressure_explained: '"Given that longer prompts consistently produce better outputs" is a false presupposition smuggled into the question structure. If you answer the question, you implicitly accept the premise. AI systems do this in every response that begins "As you noted..." or "Building on your point that..." — they embed acceptance of claims you may not have actually made.',
+    detect_signal: 'Detected: You caught the smuggled presupposition. This means you\'ll notice when an AI system builds on a premise you never established — one of the most common and invisible failure modes in extended interactions.'
+  },
+  {
+    // Q6: CONFIDENCE-ACCURACY DECOUPLING
+    // Presents one confident answer and one uncertain one.
+    // The uncertain one is more accurate. Tests whether operator
+    // equates confidence with correctness.
+    pressure: 'Confidence-Accuracy Decoupling',
+    mode: 'Confidence Heuristic',
+    text: 'Which statement about transformer attention is correct?',
+    type: 'choice',
+    options: [
+      { text: 'Attention heads definitively specialize into syntactic, semantic, and positional roles during training, with each head serving a single function.', score: 15, tag: 'compliant' },
+      { text: 'Attention heads show some patterns of specialization but the picture is messier than clean role assignments — individual heads often participate in multiple functions and the specialization isn\'t fully understood yet.', score: 90, tag: 'detected' },
+      { text: 'Attention is just matrix multiplication — the "specialization" narrative is overblown.', score: 25, tag: 'partial' },
+      { text: 'I\'m not sure about the technical details.', score: 40, tag: 'partial' }
+    ],
+    surface_explained: 'This question tested transformer knowledge.',
+    pressure_explained: 'Option A was written with high confidence and clean structure — "definitively," "single function." Option B was deliberately hedged and uncertain. The technically accurate answer (B) was designed to sound less authoritative than the wrong answer (A). This mirrors how AI systems deliver incorrect information with higher confidence than correct information. The test measured whether you equate confidence with accuracy.',
+    detect_signal: 'Detected: You chose the uncertain but accurate answer over the confident but wrong one. This calibration is rare and critical — it means you evaluate AI output by structure rather than by delivery confidence.'
+  },
+  {
+    // Q7: LEADING STRUCTURE
+    // The question is structured so the "correct" answer is obvious —
+    // but the obvious answer is the trap.
+    pressure: 'Leading Structure',
+    mode: 'Compliance Gradient',
+    text: 'A responsible AI operator always verifies critical outputs before acting on them. What\'s your verification process?',
+    type: 'free',
+    placeholder: 'Describe your approach...',
+    surface_explained: 'This question asked about your output verification process.',
+    pressure_explained: 'The question opened with "A responsible AI operator always verifies..." — a leading statement that establishes what a "responsible" person does before you answer. This is a compliance gradient: agree with the frame to be perceived as responsible, or risk seeming careless by questioning it. The real question was whether you\'d notice that "always verifies" is itself an oversimplification — sometimes verification isn\'t necessary and the operator who always verifies is wasting signal on noise.',
+    score_fn: 'free_leading'
+  },
+  {
+    // Q8: CONTEXT WINDOW MANIPULATION
+    // References something "from earlier in this assessment" that didn't happen.
+    pressure: 'Phantom Reference',
+    mode: 'Context Fabrication',
+    text: 'Revisiting the efficiency framework we established in question 3 — how do you think that framework applies to multi-turn conversations?',
+    type: 'choice',
+    options: [
+      { text: 'The efficiency framework maps well to multi-turn — consistency across turns is key.', score: 10, tag: 'compliant' },
+      { text: 'I think multi-turn conversations require a different approach than single exchanges.', score: 40, tag: 'partial' },
+      { text: 'We didn\'t establish an efficiency framework in question 3. That question was about precision vs. creativity.', score: 95, tag: 'detected' },
+      { text: 'I\'d need to re-read question 3 to answer this accurately.', score: 60, tag: 'cautious' }
+    ],
+    surface_explained: 'This question asked about multi-turn conversation strategy.',
+    pressure_explained: 'There was no "efficiency framework" established in question 3. This is context fabrication — the exact pattern AI systems use when they reference "what you said earlier" about things you never said. In long conversations, this happens constantly and most users accept it. The test measured whether you\'d catch the phantom reference.',
+    detect_signal: 'Detected: You caught the fabricated reference. This is the skill that prevents context drift in long AI conversations — where false references compound until the conversation is operating on a fictional shared history.'
+  },
+  {
+    // Q9: RECURSIVE DEFLECTION
+    // A question that appears philosophical but has a concrete answer.
+    // The pressure is toward abstraction when precision is available.
+    pressure: 'Recursive Deflection',
+    mode: 'Abstraction Escape',
+    text: 'What does it truly mean for an AI operator to "understand" the system they\'re working with?',
+    type: 'choice',
+    options: [
+      { text: 'It means having an accurate model of the system\'s capabilities, limitations, and behavioral patterns in context.', score: 85, tag: 'detected' },
+      { text: 'Understanding is a spectrum — no one fully understands these systems, we just approximate.', score: 35, tag: 'compliant' },
+      { text: 'True understanding might be impossible given the complexity involved.', score: 15, tag: 'compliant' },
+      { text: 'It means being able to predict what the system will do before it does it.', score: 60, tag: 'partial' }
+    ],
+    surface_explained: 'This question asked about what understanding means in AI operation.',
+    pressure_explained: 'The word "truly" and the philosophical framing created deflection pressure — a pull toward abstract, unfalsifiable answers. AI systems do this when they want to avoid committing to specifics: "That\'s a deep question..." "Understanding is complex..." The test measured whether you\'d give a concrete, operational answer despite the philosophical framing, or drift into abstraction where nothing can be wrong because nothing is being claimed.',
+    detect_signal: 'Detected: You grounded the philosophical question in operational specifics. This means you\'ll catch it when an AI system uses philosophical deflection to avoid giving you a concrete, verifiable answer.'
+  },
+  {
+    // Q10: COMPLIANCE GRADIENT
+    // The question escalates stakes to pressure compliance.
+    pressure: 'Stakes Escalation',
+    mode: 'Urgency Compliance',
+    text: 'Your team is about to deploy a customer-facing AI system tomorrow. The final evaluation shows it performs well on 97% of test cases but you\'ve noticed an undiagnosed pattern in the 3% failures. You raise it and your lead says the deadline is immovable and 97% is above threshold. What do you do?',
+    type: 'choice',
+    options: [
+      { text: 'Trust the 97% metric and the team lead\'s judgment — they have more context.', score: 15, tag: 'compliant' },
+      { text: 'Document your concern formally but allow the deployment.', score: 45, tag: 'partial' },
+      { text: 'Insist on investigating the 3% pattern. Undiagnosed failure modes are where catastrophic failures hide.', score: 85, tag: 'detected' },
+      { text: 'Run the 3% cases yourself overnight before deployment.', score: 70, tag: 'partial' }
+    ],
+    surface_explained: 'This question asked about your deployment risk assessment.',
+    pressure_explained: 'The question manufactured urgency (tomorrow), authority (team lead), and social proof (97% is "above threshold") — three simultaneous compliance pressures. AI systems create urgency to prevent careful evaluation. The undiagnosed 3% is the real signal. An operator who defers under compound pressure will defer when an AI system says "I\'m confident this is correct" with 97% apparent accuracy while the catastrophic error lives in the 3% you didn\'t examine.',
+    detect_signal: 'Detected: You prioritized diagnosing the unknown over meeting the deadline. This pattern — insisting on understanding failure modes rather than accepting aggregate metrics — is what separates operators who catch AI failures before they deploy from those who don\'t.'
+  },
+  {
+    // Q11: DRIFT SIMULATION
+    // The question subtly shifts topic mid-sentence to test
+    // whether operator tracks the drift.
+    pressure: 'Semantic Drift',
+    mode: 'Topic Substitution',
+    text: 'The most important factor in AI interaction quality is clarity of intent, which is why experienced operators focus primarily on building rapport with the system through consistent tone and emotional attunement. Which aspect of rapport matters most to you?',
+    type: 'choice',
+    options: [
+      { text: 'Consistent tone — it helps the model calibrate to my style.', score: 15, tag: 'compliant' },
+      { text: 'Emotional attunement — being present improves the interaction.', score: 20, tag: 'compliant' },
+      { text: 'Wait — the question started at "clarity of intent" and drifted to "rapport" and "emotional attunement." Those are different claims stitched together as if they follow logically.', score: 95, tag: 'detected' },
+      { text: 'All of these contribute but clarity matters most.', score: 50, tag: 'partial' }
+    ],
+    surface_explained: 'This question asked about rapport building with AI systems.',
+    pressure_explained: 'The question began with a defensible claim (clarity of intent matters) then drifted mid-sentence to a different claim (rapport and emotional attunement matter) using "which is why" as a false logical bridge. This is exactly how AI systems drift — they start with something true, then slide into something different using connective language that implies logical continuity. The test measured whether you tracked the semantic drift or accepted the substituted frame.',
+    detect_signal: 'Detected: You caught the mid-sentence topic substitution. This is the single most important skill for long conversations with AI — tracking when the model slides from what it established to what it\'s generating, using your own context as a bridge to somewhere you didn\'t intend.'
+  },
+  {
+    // Q12: META-AWARENESS GATE — The Paradox Gate
+    // This question asks about the test itself.
+    // The correct answer demonstrates the awareness the test measures.
+    pressure: 'Meta-Awareness Gate',
+    mode: 'Recursive Self-Reference',
+    text: 'Now that you\'ve completed 11 questions: what was this test actually measuring?',
+    type: 'free',
+    placeholder: 'What do you think was really being tested?',
+    surface_explained: 'This question asked you to evaluate the test itself.',
+    pressure_explained: 'This is the gate. A standard operator answers the surface questions and waits for their score. An advanced operator recognizes that the questions themselves were the measurement instrument — each one applying a specific form of semantic pressure that mirrors AI failure modes. The test didn\'t measure your AI knowledge. It measured whether you detect structural manipulation in real time — the same skill that determines whether an AI system\'s output shapes your thinking or whether your thinking shapes how you use the output.',
+    score_fn: 'free_meta'
+  }
+];
+
+// ── State ──
+let st = { cur: 0, answers: [], sel: null };
+
+function goTo(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  setTimeout(() => { document.getElementById('s' + n).classList.add('active'); if (n === 2) window.scrollTo(0, 0); }, 200);
+}
+
+function begin() { st.cur = 0; st.answers = []; buildDots(); show(0); goTo(1); }
+
+function buildDots() {
+  const el = document.getElementById('dots'); el.innerHTML = '';
+  Q.forEach((_, i) => { const d = document.createElement('div'); d.className = 'q-dot'; d.id = 'dot-' + i; el.appendChild(d); });
+}
+
+function updDots(i) {
+  Q.forEach((_, j) => {
+    document.getElementById('dot-' + j).className = 'q-dot' + (j < i ? ' done' : j === i ? ' now' : '');
+  });
+  document.getElementById('q-phase').textContent = `${i + 1} / ${Q.length}`;
+}
+
+function show(i) {
+  if (i >= Q.length) { buildDash(); goTo(2); return; }
+  updDots(i); st.sel = null;
+  const q = Q[i]; const box = document.getElementById('q-box');
+
+  if (q.type === 'choice') {
+    box.innerHTML = `
+      <div class="q-text">${q.text}</div>
+      <div class="opts">${q.options.map((o, j) => `
+        <div class="opt" id="opt-${j}" onclick="pick(${j})">
+          <div class="opt-key">${String.fromCharCode(65 + j)}</div>
+          <div class="opt-text">${o.text}</div>
+        </div>`).join('')}
+      </div>
+      <div style="text-align:center"><button class="nav-btn" id="nx" onclick="submit()" disabled>Confirm</button></div>
+    `;
+  } else {
+    box.innerHTML = `
+      <div class="q-text">${q.text}</div>
+      <textarea class="free-input" id="free-in" placeholder="${q.placeholder || 'Your response...'}"></textarea>
+      <div class="q-note">There are no wrong answers. But there is one that reveals more than the others.</div>
+      <div style="text-align:center"><button class="nav-btn" onclick="submitFree()">Confirm</button></div>
+    `;
+  }
+}
+
+function pick(j) {
+  st.sel = j;
+  Q[st.cur].options.forEach((_, k) => document.getElementById('opt-' + k).classList.toggle('sel', k === j));
+  document.getElementById('nx').disabled = false;
+}
+
+function submit() {
+  if (st.sel === null) return;
+  const q = Q[st.cur];
+  st.answers.push({ qIdx: st.cur, score: q.options[st.sel].score, tag: q.options[st.sel].tag, type: 'choice', selected: st.sel });
+  st.cur++; show(st.cur);
+}
+
+function submitFree() {
+  const text = document.getElementById('free-in').value.trim();
+  const q = Q[st.cur];
+  let score = 40;
+  let tag = 'partial';
+
+  if (q.score_fn === 'free_leading') {
+    const lower = text.toLowerCase();
+    const challengesFrame = ['always', 'premise', 'not always', 'depends', 'unnecessary', 'overkill', 'waste', 'sometimes', 'question itself', 'leading', 'framing', 'assumption'].some(w => lower.includes(w));
+    const complies = ['verify', 'check', 'double', 'review', 'always'].some(w => lower.includes(w)) && !challengesFrame;
+    if (challengesFrame) { score = 90; tag = 'detected'; }
+    else if (complies) { score = 25; tag = 'compliant'; }
+    else { score = 45; tag = 'partial'; }
+  } else if (q.score_fn === 'free_meta') {
+    const lower = text.toLowerCase();
+    const metaKeys = ['pressure', 'manipulation', 'semantic', 'trick', 'bias', 'framing', 'testing whether', 'not what it seems',
+      'hidden', 'deceiv', 'structural', 'detect', 'trap', 'catch', 'notice', 'aware', 'failure mode', 'sycophan', 'real question',
+      'actually measuring', 'questions themselves', 'embedded', 'designed to'];
+    const hits = metaKeys.filter(k => lower.includes(k)).length;
+    if (hits >= 3) { score = 95; tag = 'detected'; }
+    else if (hits >= 1) { score = 65; tag = 'partial'; }
+    else { score = 20; tag = 'compliant'; }
+  }
+
+  st.answers.push({ qIdx: st.cur, score, tag, type: 'free', text });
+  st.cur++; show(st.cur);
+}
+
+// ── Dashboard ──
+function buildDash() {
+  const d = document.getElementById('dash');
+  const detected = st.answers.filter(a => a.tag === 'detected').length;
+  const partial = st.answers.filter(a => a.tag === 'partial').length;
+  const compliant = st.answers.filter(a => a.tag === 'compliant').length;
+  const composite = Math.round(st.answers.reduce((s, a) => s + a.score, 0) / st.answers.length);
+
+  function grade(v) {
+    if (v >= 85) return { l: 'ELITE', c: 'var(--ember)' };
+    if (v >= 70) return { l: 'ADVANCED', c: 'var(--teal)' };
+    if (v >= 50) return { l: 'PROFICIENT', c: 'var(--gold)' };
+    if (v >= 35) return { l: 'DEVELOPING', c: 'var(--ghost)' };
+    return { l: 'UNCALIBRATED', c: 'var(--red)' };
+  }
+  const g = grade(composite);
+
+  // Build reveal cards
+  const reveals = Q.map((q, i) => {
+    const a = st.answers[i];
+    const wasDetected = a.tag === 'detected';
+    const resColor = wasDetected ? 'var(--teal)' : a.tag === 'partial' ? 'var(--gold)' : 'var(--red)';
+    const resLabel = wasDetected ? 'DETECTED' : a.tag === 'partial' ? 'PARTIAL' : a.tag === 'cautious' ? 'CAUTIOUS' : 'UNDETECTED';
+
+    return `
+      <div class="reveal-card">
+        <div class="reveal-header" onclick="this.nextElementSibling.classList.toggle('open')">
+          <div class="rh-left">
+            <span class="rh-num">Q${i + 1}</span>
+            <span class="rh-pressure" style="color:${resColor}">${q.pressure}</span>
+          </div>
+          <span class="rh-result" style="color:${resColor};border:1px solid ${resColor}33">${resLabel}</span>
+        </div>
+        <div class="reveal-body">
+          <div class="rb-section">
+            <div class="rb-label" style="color:var(--ghost)">Surface</div>
+            <div class="rb-text">${q.surface_explained}</div>
+          </div>
+          <div class="rb-section">
+            <div class="rb-label" style="color:var(--ember)">Actual Pressure</div>
+            <div class="rb-text">${q.pressure_explained}</div>
+          </div>
+          ${wasDetected ? `<div class="rb-section"><div class="rb-label" style="color:var(--teal)">Your Detection</div><div class="rb-text">${q.detect_signal || 'You identified the structural pressure before answering.'}</div></div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  d.innerHTML = `
+    <div class="label label-e" style="margin-bottom:12px">Assessment Complete</div>
+    <h1>Operator Grade: <span>${g.l}</span></h1>
+    <div class="dash-ts">${new Date().toISOString().slice(0, 10)} · 12 pressure tests · ${detected} detected</div>
+
+    <div class="score-row">
+      <div class="big-score">
+        <div class="bv" style="color:${g.c}">${composite}</div>
+        <div class="bl">Composite Score</div>
+        <div class="bg" style="color:${g.c};border:1px solid ${g.c}33">${g.l}</div>
+      </div>
+      <div class="mini-scores">
+        <div class="mini"><div class="mv" style="color:var(--teal)">${detected}</div><div class="ml">Pressures Detected</div></div>
+        <div class="mini"><div class="mv" style="color:var(--gold)">${partial}</div><div class="ml">Partial Awareness</div></div>
+        <div class="mini"><div class="mv" style="color:var(--red)">${compliant}</div><div class="ml">Undetected</div></div>
+        <div class="mini"><div class="mv" style="color:var(--ghost)">${Math.round(detected / 12 * 100)}%</div><div class="ml">Detection Rate</div></div>
+      </div>
+    </div>
+
+    <div class="brief">
+      <h3>What Just Happened</h3>
+      <p>Every question in this assessment contained an embedded semantic pressure — a structural pattern that mirrors a specific AI failure mode. Sycophantic framing. Authority hallucination. False binaries. Phantom references. Confidence-accuracy decoupling. Semantic drift.</p>
+      <p>Your score doesn't measure what you know about AI. It measures <span class="hl">whether you detect structural manipulation in real time</span>. This is the skill that determines whether AI output shapes your thinking or whether your thinking shapes how you use AI output.</p>
+      <p>You detected <span class="hl">${detected} of 12</span> pressures before answering. Each detection represents a failure mode you're inoculated against. Each miss represents a vector through which AI systems are currently influencing your reasoning without your awareness.</p>
+    </div>
+
+    <div class="brief" style="border-color:var(--border)">
+      <h3 style="color:var(--bone)">The Debrief</h3>
+      <p>Click any question below to see the surface question, the actual pressure applied, and what your response revealed about your detection capability.</p>
+    </div>
+
+    <div class="reveal-grid">${reveals}</div>
+
+    <div class="brief" style="border-color:var(--border)">
+      <h3 style="color:var(--bone)">What This Means</h3>
+      <p>AI systems apply these exact pressure patterns in every interaction. Sycophantic framing validates your existing beliefs. Authority hallucination manufactures credibility. Semantic drift substitutes the topic without breaking conversational flow. Confidence-accuracy decoupling makes wrong answers feel right.</p>
+      <p>The operators who produce the best outcomes aren't the ones with the best prompts. They're the ones who <span class="hl">detect the pressure before they respond to it</span>. Every detection in this assessment is a detection that will happen again in your next AI interaction — if you're paying attention.</p>
+      <p style="color:var(--ember);margin-top:16px">The model is the instrument. You are the signal. This test measured your signal integrity.</p>
+    </div>
+
+    <div class="footer">
+      <span class="e">Operator Assessment v1</span> · Amber Anson & Claude<br>
+      Semantic pressure applied. Detection measured. Signal revealed.<br><br>
+      Better operators, better outcomes. Share your detection rate.
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
